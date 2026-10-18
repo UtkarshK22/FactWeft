@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useState } from "react"
 import cytoscape from "cytoscape"
 import "cytoscape-fcose"
 
-;(global as any).cytoscape = cytosache
-;(global as any).fcose = (global as any).fcose || require("cytoscape-fcose")
+;(globalThis as any).cytoscape = cytoscape
+// fcose layout is registered by the side-effect import above
 
-import { useAppStore } from "../store/useStore"
+import { useAppStore } from "../../store/useStore"
 
 interface ConstellationProps {
   onNodeSelect?: (nodeId: string, nodeData: any) => void
@@ -14,14 +14,12 @@ interface ConstellationProps {
 }
 
 export function Constellation({ onNodeSelect, onProofPath, onToggleListView }: ConstellationProps) {
-  const { selectedMemoryId, selectedHandoffId, asOfMs, filters, agent } = useAppStore()
+  const { agent } = useAppStore()
+  const { selectedMemoryId, asOfMs, filters } = useAppStore((s) => s.panel)
   const [cy, setCy] = useState<any>(null)
   const [layoutPositions, setLayoutPositions] = useState<Map<string, { x: number; y: number }>>(new Map())
   const [isListView, setIsListView] = useState(false)
   const [proofPath, setProofPath] = useState<string[]>([])
-  const [proofPlaying, setProofPlaying] = useState(false)
-  const [proofIndexes, setProofIndexes] = useState<number[]>([])
-  const [proofInterval, setProofInterval] = useState<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     return () => {
@@ -73,8 +71,33 @@ export function Constellation({ onNodeSelect, onProofPath, onToggleListView }: C
     const container = document.getElementById("constellation-cy") as HTMLElement
     if (!container) return
 
-    const cy = cytoscape({
+    // Backend /api/graph/neighborhood returns { nodes, edges } (GraphNode/GraphEdge)
+    const elements = [
+      ...(data?.nodes ?? []).map((n: any) => ({
+        data: { ...n, label: n.properties?.label ?? n.properties?.name ?? n.id },
+        classes:
+          (n.labels ?? [])
+            .map((l: string) => String(l).toLowerCase())
+            .find((l: string) => ["memory", "concept", "source", "agent", "handoff", "decision"].includes(l)) ?? "",
+      })),
+      ...(data?.edges ?? []).map((e: any) => {
+        const type = String(e.type ?? "").toLowerCase()
+        const cls = type.includes("exclud")
+          ? "excludes"
+          : type.includes("support")
+            ? "support"
+            : type.includes("supersed") || type.includes("contradict")
+              ? "conflict"
+              : type.includes("includ")
+                ? "includes"
+                : ""
+        return { data: e, classes: cls }
+      }),
+    ]
+
+    const cyInstance = cytoscape({
       container,
+      elements,
       style: [
         // Base node style
         {
@@ -87,7 +110,6 @@ export function Constellation({ onNodeSelect, onProofPath, onToggleListView }: C
             "text-halign": "center",
             "padding": "6px",
             "border-width": "2px",
-            "transition": "all 200ms ease-in-out",
             "opacity": 1,
           },
         },
@@ -203,7 +225,7 @@ export function Constellation({ onNodeSelect, onProofPath, onToggleListView }: C
         {
           selector: ".decision",
           css: {
-            "shape": "circle",
+            "shape": "ellipse",
             "width": "24px",
             "height": "24px",
             "min-width": "24px",
@@ -220,7 +242,6 @@ export function Constellation({ onNodeSelect, onProofPath, onToggleListView }: C
             "line-color": "#64748B",
             "target-arrow-shape": "triangle",
             "width": 1.5,
-            "transition": "all 200ms ease-in-out",
           },
         },
 
@@ -291,4 +312,69 @@ export function Constellation({ onNodeSelect, onProofPath, onToggleListView }: C
             "color": "white",
             "border-color": "#F97316",
             "border-width": "3px",
-       
+          },
+        },
+      ],
+    })
+
+    // Interaction: select memory node on tap
+    cyInstance.nodes().on("tap", (evt: any) => {
+      const node = evt.target
+      onNodeSelect?.(node.id(), node.data())
+    })
+
+    // Interaction: show proof path between two nodes on edge tap
+    cyInstance.edges().on("tap", (evt: any) => {
+      const edge = evt.target
+      const path = [edge.source().id(), edge.target().id()]
+      setProofPath(path)
+      onProofPath?.(path)
+    })
+
+    // Persist positions when the user drags a node
+    cyInstance.nodes().on("dragstop", (evt: any) => {
+      const node = evt.target
+      setLayoutPositions(new Map(layoutPositions).set(node.id(), node.position()))
+    })
+
+    // Highlight the selected memory node
+    if (selectedMemoryId) {
+      cyInstance.nodes().removeClass("active")
+      cyInstance.getElementById(selectedMemoryId).addClass("active")
+    }
+
+    cyInstance.layout({ name: "fcose" }).run()
+    setCy(cyInstance)
+  }
+
+  return (
+    <div className="relative h-full w-full">
+      <div id="constellation-cy" className="h-full w-full min-h-[480px]" />
+
+      {/* View toggle */}
+      <button
+        onClick={() => {
+          setIsListView(!isListView)
+          onToggleListView?.(!isListView)
+        }}
+        className="absolute top-2 right-2 rounded-md border border-border bg-surface px-3 py-1.5 text-sm text-muted hover:text-accent hover:bg-bg transition-colors"
+      >
+        {isListView ? "Graph view" : "List view"}
+      </button>
+
+      {/* List view fallback */}
+      {isListView && (
+        <div className="absolute inset-0 overflow-y-auto bg-bg/95 p-4 text-sm text-muted">
+          <p>Select a node in the graph view to inspect it.</p>
+        </div>
+      )}
+
+      {/* Proof path indicator */}
+      {proofPath.length > 0 && (
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-md border border-border bg-surface px-4 py-2 text-sm text-text">
+          Proof path: {proofPath.join(" → ")}
+        </div>
+      )}
+    </div>
+  )
+}

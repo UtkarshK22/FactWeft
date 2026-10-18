@@ -1,8 +1,7 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useAppStore } from "../../store/useStore"
-import { postAsk, getBearerToken, createToast, clearToasts } from "../../lib/api"
-import { AskResponse, Caveat, Excluded, WhatChanged, Citation, Step, Readiness } from "../../types/api"
-import { DisputeDesk } from "../dispute/DisputeDesk"
+import { postAsk, createToast } from "../../lib/api"
+import type { Caveat, Excluded, WhatChanged } from "../../types/api"
 import { HandoffCapsule } from "../handoff/HandoffCapsule"
 
 export interface SuggestedQuestion {
@@ -19,11 +18,11 @@ export const AskPanel: React.FC = () => {
   const [caveats, setCaveats] = useState<Array<Caveat>>([])
   const [excluded, setExcluded] = useState<Array<Excluded>>([])
   const [whatChanged, setWhatChanged] = useState<WhatChanged | null>(null)
-  const [grounding, setGrounding] = useState<"verified citations" | "template fallback">("verified citations")
+  const [grounding, setGrounding] = useState<"verified citations" | "template fallback" | "extracted" | "template">("verified citations")
   const [showProof, setShowProof] = useState(false)
   const [handoffId, setHandoffId] = useState<string | null>(null)
-  const { agent, asOfMs } = useAppStore()
-  const { createToast, clearToasts } = useAppStore()
+  const { agent } = useAppStore()
+  const { clearToasts: clearStoreToasts } = useAppStore()
 
   // Suggested questions
   const suggestedQuestions: SuggestedQuestion[] = [
@@ -38,7 +37,7 @@ export const AskPanel: React.FC = () => {
   const handleSelectQuestion = (question: SuggestedQuestion) => {
     setInput(question.text)
     setAnswer(null)
-    clearToasts()
+    clearStoreToasts()
     setProgress(0)
     setEvents([])
     setCaveats([])
@@ -72,7 +71,7 @@ export const AskPanel: React.FC = () => {
       setHandoffId(res.handoff_id || null)
 
       // Set up event polling for progress ticker
-      setupEventPolling(res.trace_ids || [])
+      setupEventPolling()
 
       // Show toast for 422 abstentions
       if (res.answer?.includes("abstain") || res.answer?.includes("unable")) {
@@ -94,12 +93,11 @@ export const AskPanel: React.FC = () => {
   }
 
   // Setup event polling for progress ticker
-  useEffect(() => {
-    let cancel = false
+  const pollCancelledRef = useRef(false)
 
-    const setupEventPolling = (traceIds: string[]) => {
-      const fetchEvents = async () => {
-        if (!agent?.token || cancel) return
+  const setupEventPolling = () => {
+    const fetchEvents = async () => {
+      if (!agent?.token || pollCancelledRef.current) return
         try {
           const res = await fetch("/api/events", {
             headers: { Authorization: `Bearer ${agent.token}` },
@@ -110,7 +108,7 @@ export const AskPanel: React.FC = () => {
           setEvents(data.events || [])
           setProgress(data.progress || 0)
           // Continue polling if not complete
-          if (!data.completed && !cancel) {
+          if (!data.completed && !pollCancelledRef.current) {
             setTimeout(fetchEvents, 2000)
           }
         } catch (e) {
@@ -118,12 +116,14 @@ export const AskPanel: React.FC = () => {
         }
       }
 
-      // Initial fetch
-      fetchEvents()
-    }
+    fetchEvents()
+  }
 
+  useEffect(() => {
+    pollCancelledRef.current = false
+    setupEventPolling()
     return () => {
-      cancel = true
+      pollCancelledRef.current = true
     }
   }, [agent?.token])
 
@@ -205,8 +205,8 @@ export const AskPanel: React.FC = () => {
               <div
                 className="bg-teal-600 h-2 transition-width ease-out duration-500"
                 style={{ width: progress > 0 ? progress + "%" : "0%" }}
-                aria-valuemin="0"
-                aria-valuemax="100"
+                aria-valuemin={0}
+                aria-valuemax={100}
                 aria-valuenow={progress}
               />
             </div>
@@ -225,7 +225,7 @@ export const AskPanel: React.FC = () => {
             <div className="flex items-center gap-2 mb-4">
               <span className="rounded-md px-2 py-1 text-xs font-medium"
                 style={{
-                  background: grounding === "verified citations" ? "hsl(160, 70%, 55%)" : "hsl(0, 80%, 55%)",
+                  background: grounding === "verified citations" || grounding === "extracted" ? "hsl(160, 70%, 55%)" : "hsl(0, 80%, 55%)",
                   color: "white",
                 }}>
                 {grounding}
@@ -242,16 +242,13 @@ export const AskPanel: React.FC = () => {
               <div className="mt-3">
                 <p className="text-sm text-slate-400 mb-2">Citations</p>
                 <div className="flex flex-wrap gap-2">
-                  {"mem_1 mem_2 mem_3 mem_4 mem_5".split(" ").map((cid, i) => (
+                  {"mem_1 mem_2 mem_3 mem_4 mem_5".split(" ").map((cid) => (
                     <span
                       key={cid}
                       className="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium bg-teal-500/20 text-teal-400 border border-teal-500/20"
                       onClick={() => {
                         // Select memory in graph
-                        useAppStore.getState().setPanel((s: any) => ({
-                          ...s,
-                          panel: { ...s.panel, selectedMemoryId: cid },
-                        }))
+                        useAppStore.getState().setPanel({ selectedMemoryId: cid })
                         createToast("Selected", "Memory " + cid + " selected in graph", "OK", 3000)
                       }}
                     >
@@ -326,14 +323,14 @@ export const AskPanel: React.FC = () => {
             {/* Action buttons */}
             <div className="flex gap-3 mt-4">
               <button
-                onClick={() => setShowProof(true)}
+                onClick={handleShowProof}
                 className="flex-1 rounded-md bg-slate-800 px-4 py-2 text-xs font-medium text-teal-400 hover:bg-slate-700 transition-colors"
                 aria-label="Show proof path"
               >
                 Show proof path
               </button>
               <button
-                onClick={() => setHandoffId(handoffId || undefined)}
+                onClick={handleOpenHandoff}
                 className="flex-1 rounded-md bg-slate-800 px-4 py-2 text-xs font-medium text-violet-400 hover:bg-slate-700 transition-colors"
                 aria-label="Open handoff"
               >

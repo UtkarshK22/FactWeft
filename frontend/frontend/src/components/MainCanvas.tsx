@@ -1,18 +1,16 @@
-import { ReactNode } from "react"
-import { useAppStore } from "../store/useStore"
 import { useQuery } from "@tanstack/react-query"
 import { getHealth } from "../lib/api"
-import { useNavigate } from "react-router-dom"
-import { useAppStore as useStore } from "../store/useStore"
+import { AskView } from "./AskView"
+import { SkeletonLoader } from "./SkeletonLoader"
 
 interface MainCanvasProps {
   view: string
   onTabClick: (view: string) => void
   agent: any | null
-  llmMode: string
+  llmMode: "fixture" | "live"
 }
 
-export function MainCanvas({ view, onTabClick, agent, llmMode }: MainCanvasProps) {
+export function MainCanvas({ view, onTabClick, llmMode }: MainCanvasProps) {
   const { data: health, isLoading } = useQuery({
     queryKey: ["health"],
     queryFn: getHealth,
@@ -58,7 +56,7 @@ export function MainCanvas({ view, onTabClick, agent, llmMode }: MainCanvasProps
           </div>
         )}
 
-        {data && data.falkordb === "down" && (
+        {health && health.falkordb === "down" && (
           <div className="min-h-[400px] flex items-center justify-center text-rose-400">
             <svg className="h-6 w-6 mb-2 opacity-50" viewBox="0 0 20 20" fill="currentColor">
               <path d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM9.354 5.646a.5.5 0 0 1 .708 0l1.414 1.414a.5.5 0 0 0 .708-.708l-1.414-1.414a.5.5 0 0 0-.708 0l-1.414 1.414a.5.5 0 0 1-.708 0Z"/>

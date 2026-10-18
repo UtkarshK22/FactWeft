@@ -1,4 +1,4 @@
-import { ReactNode, useState, useEffect } from "react"
+
 
 interface SkeletonLoaderProps {
   size?: "small" | "medium" | "large"

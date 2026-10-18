@@ -1,9 +1,4 @@
-import { ReactNode } from "react"
-import { useAppStore } from "../store/useStore"
-import { StatusBadge } from "./StatusBadge"
-import { ScopeChip } from "./ScopeChip"
-import { AuthorityMeter } from "./AuthorityMeter"
-import { KeyboardShortcuts } from "./KeyboardShortcuts"
+import { AgentAvatar } from "./AgentAvatar"
 
 interface LeftRailProps {
   onTabClick: (view: string) => void
@@ -12,7 +7,6 @@ interface LeftRailProps {
 }
 
 export function LeftRail({ onTabClick, selectedView, agent }: LeftRailProps) {
-  const { asOfMs, filters } = useAppStore()
 
   const views = [
     { key: "constellation", label: "Constellation", icon: "⟡", description: "Memory graph" },
@@ -51,7 +45,7 @@ export function LeftRail({ onTabClick, selectedView, agent }: LeftRailProps) {
       <div className="mt-auto p-3 border-t border-border">
         <div className="text-[0.65em] text-muted mb-1">Selected</div>
         {agent && (
-          <AgentAvatar agentId={agent.agentId} role={agent.role} size="sm" />
+          <AgentAvatar agentId={agent.agent_id} role={agent.role} size="sm" />
         )}
       </div>
 

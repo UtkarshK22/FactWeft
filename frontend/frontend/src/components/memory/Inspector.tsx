@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react"
-import { useAppStore } from "../store/useStore"
+import { useAppStore } from "../../store/useStore"
 import { StatusBadge } from "../StatusBadge"
 import { ScopeChip } from "../ScopeChip"
 import { AuthorityMeter } from "../AuthorityMeter"
 import { AgentAvatar } from "../AgentAvatar"
 import { ErrorState } from "../ErrorState"
-import { EmptyState } from "../EmptyState"
+
 
 interface InspectorProps {
   memoryId: string | null
@@ -13,13 +13,12 @@ interface InspectorProps {
 }
 
 export function Inspector({ memoryId, onClose }: InspectorProps) {
-  const { panel, setPanel, agent, asOfMs } = useAppStore()
+  const { agent } = useAppStore()
   const [memoryData, setMemoryData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    async function loadMemory() {
+  const loadMemory = async () => {
       if (!memoryId) {
         setMemoryData(null)
         setLoading(false)
@@ -51,6 +50,7 @@ export function Inspector({ memoryId, onClose }: InspectorProps) {
       }
     }
 
+  useEffect(() => {
     loadMemory()
   }, [memoryId, agent?.token])
 
@@ -91,7 +91,7 @@ export function Inspector({ memoryId, onClose }: InspectorProps) {
       {/* Memory Summary Section */}
       <div>
         <h2 className="text-lg font-semibold text-text mb-3 flex items-center gap-2">
-          <StatusBadge status="active" showGlyph={false} width="14" height="14" />
+          <StatusBadge status="active" showGlyph={false} />
           <span>Memory Details</span>
         </h2>
 
@@ -145,11 +145,11 @@ export function Inspector({ memoryId, onClose }: InspectorProps) {
             <h3 className="text-xs font-medium text-muted mb-1">Confidence</h3>
             <div className="h-2 rounded-full bg-surface border border-border overflow-hidden">
               <div
-                className={`h-full rounded-full bg-${memoryData.confidence > 0.5 ? "accent" : "secondary"} transition-colors ${memoryData.confidence > 0.5 ? "accent" : "secondary-foreground"}`}
+                className={`h-full rounded-full bg-${(memoryData.confidence ?? 0) > 0.5 ? "accent" : "secondary"} transition-colors ${(memoryData.confidence ?? 0) > 0.5 ? "accent" : "secondary-foreground"}`}
                 style={{ width: `${memoryData.confidence * 100}%` }}
               ></div>
             </div>
-            <span className="text-[0.65em] ml-2 ${memoryData.confidence > 0.5 ? "text-accent" : "text-secondary"}">
+            <span className={`text-[0.65em] ml-2 ${(memoryData.confidence ?? 0) > 0.5 ? "text-accent" : "text-secondary"}`}>
               {((memoryData.confidence * 100) | 0)}%
             </span>
           </div>
@@ -197,7 +197,7 @@ export function Inspector({ memoryId, onClose }: InspectorProps) {
         )}
 
         {/* Source Cards */}
-        {memoryData.source_cards && memoryData.source_cards.length > 0 && (
+        {(memoryData as any).source_cards && (memoryData as any).source_cards.length > 0 && (
           <div className="mt-3">
             <h3 className="text-xs font-medium text-muted mb-1">Sources</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1">
@@ -208,4 +208,27 @@ export function Inspector({ memoryId, onClose }: InspectorProps) {
                 >
                   <div className="text-[0.6em] text-muted mb-0.5">Type: {src.type || "unknown"}</div>
                   <AuthorityMeter pips={3} active={src.authority || 1} className="mb-0.5" />
-                  <p className="te
+                  <p className="text-[0.6em] text-text truncate">{src.title || "Untitled"}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {(memoryData.evidence && memoryData.evidence.length > 0) && (
+          <div className="mt-4">
+            <h3 className="text-xs font-medium text-muted mb-2">Evidence</h3>
+            <div className="space-y-1">
+              {memoryData.evidence.map((ev: any, i: number) => (
+                <div key={i} className="p-2 rounded-md bg-surface border border-border text-[0.65em]">
+                  <p className="font-medium text-text">{ev.title || "Untitled"}</p>
+                  <p className="text-muted truncate">Authority: {ev.authority ?? "—"}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+

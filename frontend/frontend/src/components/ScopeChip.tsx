@@ -1,8 +1,8 @@
-import { ReactNode } from "react"
+
 
 interface ScopeChipProps {
   label: string
-  count?: number
+  count?: number | null
   active?: boolean
   onSelect?: () => void
 }
@@ -19,11 +19,10 @@ export function ScopeChip({ label, count, active = false, onSelect }: ScopeChipP
 
   return (
     <div
-      className={classes}
+      className={`${classes} cursor-pointer`}
       onClick={onSelect}
       role="button"
       tabIndex={0}
-      className="cursor-pointer"
     >
       {label}
       {count !== undefined && (

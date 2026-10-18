@@ -1,7 +1,7 @@
-import { ReactNode } from "react"
+
 
 interface StatusBadgeProps {
-  status: "active" | "contested" | "superseded" | "candidate"
+  status: "active" | "contested" | "superseded" | "candidate" | "ok" | "down" | "unknown"
   showGlyph?: boolean
 }
 
@@ -11,6 +11,9 @@ export function StatusBadge({ status, showGlyph = true }: StatusBadgeProps) {
     contested: "bg-amber-600/20 text-amber-400 border-amber-500/50",
     superseded: "bg-slate-600/20 text-slate-400 border-slate-500/50",
     candidate: "bg-violet-600/20 text-violet-400 border-violet-500/50",
+    ok: "bg-green-600/20 text-green-400 border-green-500/50",
+    down: "bg-rose-600/20 text-rose-400 border-rose-500/50",
+    unknown: "bg-slate-600/20 text-slate-400 border-slate-500/50",
   }
 
   const glyphMap: Record<string, string> = {
@@ -18,6 +21,9 @@ export function StatusBadge({ status, showGlyph = true }: StatusBadgeProps) {
     contested: "!",
     superseded: "≀",
     candidate: "◉",
+    ok: "✓",
+    down: "!",
+    unknown: "?",
   }
 
   const borderMap: Record<string, string> = {
@@ -25,6 +31,9 @@ export function StatusBadge({ status, showGlyph = true }: StatusBadgeProps) {
     contested: "double",
     superseded: "dashed",
     candidate: "dotted",
+    ok: "solid",
+    down: "double",
+    unknown: "dotted",
   }
 
   const cls = statusClasses[status] || statusClasses.active

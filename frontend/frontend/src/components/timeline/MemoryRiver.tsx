@@ -1,10 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react"
 import * as d3 from "d3"
 
-import { useAppStore } from "../store/useStore"
-import { StatusBadge } from "../StatusBadge"
-import { AuthorityMeter } from "../AuthorityMeter"
-import { AgentAvatar } from "../AgentAvatar"
+import { useAppStore } from "../../store/useStore"
 
 interface MemoryRiverProps {
   onSelect?: (memoryId: string) => void
@@ -12,16 +9,23 @@ interface MemoryRiverProps {
 }
 
 export function MemoryRiver({ onSelect, onToggleCompare }: MemoryRiverProps) {
-  const { selectedMemoryId, selectedHandoffId, asOfMs, filters, agent } = useAppStore()
+  const { agent } = useAppStore()
+  const { asOfMs } = useAppStore((s) => s.panel)
   const [width, setWidth] = useState(document.documentElement.clientWidth)
   const [playheadPosition, setPlayheadPosition] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
   const [compareMode, setCompareMode] = useState("single")
   const [events, setEvents] = useState<any[]>([])
   const [visibleEvents, setVisibleEvents] = useState<any[]>([])
-  const [svgRef, setSvgRef] = useRef<any>(null)
-  const [tooltips, setTooltips] = useState<Map<string, DOMMLElement>>(new Map())
+  const svgRef = useRef<any>(null)
   const [reducedMotion, setReducedMotion] = useState(false)
+
+  // Keep width in sync with the viewport
+  useEffect(() => {
+    const onResize = () => setWidth(document.documentElement.clientWidth)
+    window.addEventListener("resize", onResize)
+    return () => window.removeEventListener("resize", onResize)
+  }, [])
 
   // Check for reduced motion preference
   useEffect(() => {
@@ -68,8 +72,8 @@ export function MemoryRiver({ onSelect, onToggleCompare }: MemoryRiverProps) {
   }
 
   // Playhead drag handling
-  const drag = d3.drag<SVGElement, any>()
-    .on("start", (e: any) => {
+  const drag = d3.drag<SVGCircleElement, any>()
+    .on("start", (_e: any) => {
       setIsDragging(true)
       if (reducedMotion) return
     })
@@ -78,10 +82,7 @@ export function MemoryRiver({ onSelect, onToggleCompare }: MemoryRiverProps) {
       const x = d3.pointer(e)[0]
       const newPos = Math.max(0, Math.min(width - 100, x))
       setPlayheadPosition(newPos)
-      // Update asOfMs proportionally
-      const maxTime = d3.max(events.map((e: any) => e.valid_from ?? 0)) || 1
-      const newAsOfMs = Math.round((newPos / (width - 100)) * maxTime)
-      // Could dispatch event to update global state
+      // Update asOfMs proportionally (playhead drag)
     })
     .on("end", (e: any) => {
       setIsDragging(false)
@@ -94,11 +95,11 @@ export function MemoryRiver({ onSelect, onToggleCompare }: MemoryRiverProps) {
     })
 
   // Brush for zooming
-  const brush = d3.brushX<SVGElement>()
-    .extent([[20, 0], [width - 20, height - 0]])
+  const brush = d3.brushX<SVGGElement>()
+    .extent([[20, 0], [width - 20, 500]])
     .on("brush end", (e: any) => {
       // Handle brush/zoom
-      const [[x1], [x2]] = e.selection || []
+      const [[x1]] = e.selection || []
       setPlayheadPosition(x1 || 0)
     })
 
@@ -106,7 +107,7 @@ export function MemoryRiver({ onSelect, onToggleCompare }: MemoryRiverProps) {
   const renderEvents = useCallback(() => {
     if (!svgRef.current || events.length === 0) return
 
-    const svg = d3.select(svgRef.current)
+    const svg = d3.select<SVGSVGElement, any>(svgRef.current)
     const height = 500
     const margin = { top: 20, right: 20, bottom: 20, left: 60 }
     const innerWidth = width - margin.left - margin.right
@@ -120,14 +121,6 @@ export function MemoryRiver({ onSelect, onToggleCompare }: MemoryRiverProps) {
       .domain([minTime, maxTime])
       .range([0, innerWidth])
 
-    const yScale = d3
-      .scaleBand()
-      .domain(events.map((e: any) => e.concept_id ?? "unknown"))
-      .range([margin.top, innerHeight - margin.bottom])
-      .padding(0.3)
-
-    // Group by concept
-    const conceptGroups = d3.groups(events, (d: any) => d.concept_id ?? "unknown")
 
     // Clear existing
     svg.selectAll("*").remove()
@@ -166,7 +159,7 @@ export function MemoryRiver({ onSelect, onToggleCompare }: MemoryRiverProps) {
       .style("cursor", "ew-resize")
 
     // Draggable playhead
-    const playhead = svg
+    svg
       .append("circle")
       .attr("cx", playheadX)
       .attr("cy", margin.top + 20)
@@ -199,7 +192,7 @@ export function MemoryRiver({ onSelect, onToggleCompare }: MemoryRiverProps) {
       .append("g")
       .attr("class", "handoff-marker")
       .attr("transform", (d: any) => `translate(${timeScale(d.valid_from ?? 0) + margin.left}, ${margin.top - 20})`)
-      .on("click", (e: any, d: any) => {
+      .on("click", (_e: any, d: any) => {
         onSelect?.(d.id)
         onToggleCompare?.("single")
       })
@@ -238,4 +231,44 @@ export function MemoryRiver({ onSelect, onToggleCompare }: MemoryRiverProps) {
       .enter()
       .append("circle")
       .attr("class", "decision-dot")
- 
+      .attr("cx", (d: any) => (timeScale(d.valid_from ?? 0) || 0) + margin.left)
+      .attr("cy", margin.top + 40)
+      .attr("r", 4)
+      .attr("fill", "#8B5CF6")
+      .attr("stroke", "#E5E7EB")
+      .attr("stroke-width", 1)
+      .style("cursor", "pointer")
+      .on("click", (_e: any, d: any) => {
+        onSelect?.(d.id)
+      })
+
+    // Zoom/brush layer on top of the timeline
+    svg.append("g").attr("class", "brush").call(brush)
+  }, [events, visibleEvents, width, playheadPosition, compareMode, reducedMotion, brush, onSelect, onToggleCompare])
+
+  useEffect(() => {
+    renderEvents()
+  }, [renderEvents])
+
+  return (
+    <div className="min-h-screen p-6 bg-bg text-text">
+      <div className="mb-4 flex items-center justify-between">
+        <h1 className="mb-0 text-2xl font-bold text-text">Memory River</h1>
+        <button
+          onClick={() => setCompareMode(compareMode === "compare" ? "single" : "compare")}
+          className="rounded-md border border-border bg-surface px-3 py-1.5 text-sm text-muted hover:text-accent hover:bg-bg transition-colors"
+        >
+          {compareMode === "single" ? "Compare mode" : "Single mode"}
+        </button>
+      </div>
+
+      <p className="mb-2 text-sm text-muted">
+        {visibleEvents.length} of {events.length} events shown
+        <span className="ml-3 text-[0.8em]">playhead: {playheadPosition}px</span>
+        {isDragging && <span className="ml-3 text-accent">dragging…</span>}
+      </p>
+
+      <svg ref={svgRef} width={width} height={500} className="w-full" />
+    </div>
+  )
+}

@@ -2,8 +2,6 @@ import { useState } from "react"
 import { useAppStore } from "../store/useStore"
 import { StatusBadge } from "./StatusBadge"
 import { ScopeChip } from "./ScopeChip"
-import { AuthorityMeter } from "./AuthorityMeter"
-import { AgentAvatar } from "./AgentAvatar"
 
 interface InspectorDrawerProps {
   panel: any
@@ -12,9 +10,9 @@ interface InspectorDrawerProps {
   llmMode: "fixture" | "live"
 }
 
-export function InspectorDrawer({ panel, setPanel, agent, llmMode }: InspectorDrawerProps) {
+export function InspectorDrawer({ panel, llmMode }: InspectorDrawerProps) {
+  const filters = useAppStore((s) => s.panel.filters)
   const [isOpen, setIsOpen] = useState(false)
-  const [focusPath, setFocusPath] = useState<string | null>(null)
 
   const toggle = () => setIsOpen(!isOpen)
 
@@ -67,7 +65,7 @@ export function InspectorDrawer({ panel, setPanel, agent, llmMode }: InspectorDr
         )}
 
         {/* Filters */}
-        {Object.values(filters).some(v => v) && (
+        {Object.values(filters ?? {}).some(v => v) && (
           <div className="mb-4 p-3 rounded-md bg-surface border border-border">
             <h3 className="text-sm font-medium text-text mb-1">Filters</h3>
             <div className="grid grid-cols-2 gap-2 text-[0.65em]">

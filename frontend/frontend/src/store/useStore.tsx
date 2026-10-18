@@ -1,22 +1,17 @@
-import create from "zustand"
-import { persist } from "zustand/middleware/persist"
+import { create } from "zustand"
+import { persist } from "zustand/middleware"
+import { loadPanelState, savePanelState, setBearerToken, type ToastId } from "../lib/api"
 
 // Types
 import type {
   PanelState,
-  FilterState,
   LayoutView,
   Toast,
-  ToastId,
-  Citation,
-  Readiness,
-  Step,
-  WhatChanged,
   AgentInfo,
 } from "../types/api"
 
 // Toast management
-const createToastElement = (id: ToastId) => {
+const createToastElement = (id: ToastId, title: string, description: string, action?: string) => {
   const toast = document.createElement("div")
   toast.id = id
   toast.className = "fixed top-4 right-4 max-w-xs w-full bg-slate-900/90 border border-slate-700 rounded-xl p-4 shadow-lg animate-in slide-in-from-top-0 z-50"
@@ -30,9 +25,10 @@ const createToastElement = (id: ToastId) => {
         </svg>
       </div>
       <div class="flex-1 flex flex-col pt-1">
-        <p class="font-medium text-sm line-clamp-2"></p>
-        <p class="text-xs text-slate-400 line-clamp-1"></p>
+        <p class="font-medium text-sm line-clamp-2">${title}</p>
+        <p class="text-xs text-slate-400 line-clamp-1">${description}</p>
       </div>
+      ${action ? `<button class="ml-2 text-xs font-semibold text-accent underline underline-offset-2 hover:opacity-90">${action}</button>` : ""}
     </div>
   `
   ;(document.body as HTMLElement).appendChild(toast)
@@ -103,11 +99,13 @@ export const useAppStore = create<AppState>()(
 
       toasts: {},
       addToast: (title, description, action, timeout = 5000) => {
-        const id = createToastElement(`toast-${Date.now()}-${Math.random().toString(36).slice(2)}`)
+        const id: ToastId = `toast-${Date.now()}-${Math.random().toString(36).slice(2)}`
+        createToastElement(id, title, description, action)
         const toast: Toast = { id, title, description, action }
         set((s) => ({
           toasts: { ...s.toasts, [id]: toast },
         }))
+        setTimeout(() => get().removeToast(id), timeout)
         return id
       },
       removeToast: (id) => {
@@ -135,6 +133,15 @@ export const useAppStore = create<AppState>()(
           selectedMemoryId: state.panel.selectedMemoryId,
           selectedHandoffId: state.panel.selectedHandoffId,
           asOfMs: state.panel.asOfMs,
+        },
+      }),
+      // Deep-merge panel so fields omitted by partialize (e.g. filters) keep
+      // their initial-state defaults after rehydration instead of becoming undefined.
+      merge: (persisted, current) => ({
+        ...current,
+        panel: {
+          ...(current as any).panel,
+          ...((persisted as any)?.panel ?? {}),
         },
       }),
     }

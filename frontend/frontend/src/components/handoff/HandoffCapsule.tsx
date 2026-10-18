@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react"
 import { useAppStore } from "../../store/useStore"
-import { getBearerToken, queryKeys } from "../../lib/api"
-import { MemoryDetail } from "../../types/api"
+
 
 export interface HandoffSummary {
   handoff_id: string
@@ -45,8 +44,9 @@ export const HandoffCapsule: React.FC = () => {
   const [diffPickerActive, setDiffPickerActive] = useState(false)
   const [diffA, setDiffA] = useState<string | null>(null)
   const [diffB, setDiffB] = useState<string | null>(null)
-  const { agent, asOfMs } = useAppStore()
-  const { createToast, clearToasts, removeToast } = useAppStore()
+  const { agent } = useAppStore()
+  const { asOfMs } = useAppStore((s) => s.panel)
+  const { addToast: createToast, clearToasts } = useAppStore()
 
   useEffect(() => {
     if (!agent?.token) return
@@ -93,7 +93,7 @@ export const HandoffCapsule: React.FC = () => {
     }
   }
 
-  const toggleDiffPicker = () => setDiffPickerActive((s) => !s)
+
 
   const loadDiff = async () => {
     if (!diffA || !diffB || !agent?.token) return
@@ -228,7 +228,7 @@ export const HandoffCapsule: React.FC = () => {
                       <span className="font-medium text-slate-200">{mem.summary || `Memory ${i + 1}`}</span>
                       <span className="text-xs text-teal-400">authority: {mem.authority?.toFixed(2) ?? "—"}</span>
                     </div>
-                    <p className="text-slate-300 text-sm line-clamp-2 mt-1">{mem.id || "—"}</p>
+                    <p className="text-slate-300 text-sm line-clamp-2 mt-1">{mem.memory_id || "—"}</p>
                   </div>
                 ))}
 
@@ -266,7 +266,7 @@ export const HandoffCapsule: React.FC = () => {
                   <div key={i} className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full"
                       style={{
-                        background: step.state === "completed" ? "teal-500" : step.state === "blocked" ? "amber-500" : "slate-500",
+                        background: step.state === "completed" ? "#14b8a6" : step.state === "failed" ? "#f59e0b" : "#64748b",
                       }}
                     />
                     <span className="text-xs text-slate-400 font-medium">{step.step}</span>

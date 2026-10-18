@@ -1,4 +1,4 @@
-import type { ReactNode } from "react"
+
 
 // Health endpoint
 export type HealthResponse = {
@@ -29,15 +29,18 @@ export type MemoryDetail = {
   summary: string | null
   status: string | null
   scope: string | null
-  confidence: float | null
-  created_at: int | null
-  valid_from: int | null
-  valid_until: int | null
-  superseded_at: int | null
-  revision: int | null
+  confidence: number | null
+  created_at: number | null
+  valid_from: number | null
+  valid_until: number | null
+  superseded_at: number | null
+  revision: number | null
   proposed_by: string | null
   concept_name: string | null
   evidence: Array<{ id: string; title: string; authority: number | null }>
+  authority?: number | null
+  published_at?: number | null
+  proposing_agent?: string | null
 }
 
 // Auth error
@@ -181,3 +184,14 @@ export type Toast = {
 
 // Main layout
 export type LayoutView = "constellation" | "river" | "disputes" | "handoffs" | "ask"
+
+// Query trace endpoints
+export type TraceEntryResponse = {
+  request_id: string
+  [key: string]: any
+}
+
+export type TraceResponse = {
+  count: number
+  entries: TraceEntryResponse[]
+}

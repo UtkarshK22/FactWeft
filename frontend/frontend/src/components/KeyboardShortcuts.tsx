@@ -1,8 +1,8 @@
-import { ReactNode, useEffect } from "react"
+import { useEffect, type ReactNode } from "react"
 
 interface KeyboardShortcutsProps {
   children: ReactNode
-  shortcuts?: Record<string, { description: string }>
+  shortcuts?: Record<string, string>
 }
 
 export function KeyboardShortcuts({
@@ -19,11 +19,13 @@ export function KeyboardShortcuts({
 }: KeyboardShortcutsProps) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null
+      if (!target) return
       // Don't trigger if typing in an input/textarea
       if (
-        e.target.tagName === "INPUT" ||
-        e.target.tagName === "TEXTAREA" ||
-        e.target.isContentEditable
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.isContentEditable
       ) {
         return
       }
@@ -35,7 +37,7 @@ export function KeyboardShortcuts({
         // Close any open modals/drawers
         const openDrawers = document.querySelectorAll("[role=\"dialog\"][open]")
         openDrawers.forEach((drawer) => {
-          drawer.close()
+          ;(drawer as HTMLDialogElement).close()
         })
         return
       }

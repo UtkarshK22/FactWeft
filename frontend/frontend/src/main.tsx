@@ -1,14 +1,15 @@
-import { React } from "react"
+import { StrictMode } from "react"
 import { createRoot } from "react-dom/client"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { App } from "./App"
 import { useAppStore } from "./store/useStore"
+import "./index.css"
 
 // Initialize TanStack Query client
 const queryClient = new QueryClient()
 
-// Make query client available globally
-useAppStore.setQueryClient(queryClient)
+// Make query client available globally (setQueryClient lives in the store state)
+useAppStore.getState().setQueryClient(queryClient)
 
 // Wait for DOM content to be ready before rendering
 document.addEventListener("DOMContentLoaded", () => {
@@ -22,10 +23,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const root = createRoot(document.getElementById("root")!)
   root.render(
-    <React.StrictMode>
+    <StrictMode>
       <QueryClientProvider client={queryClient}>
         <App />
       </QueryClientProvider>
-    </React.StrictMode>
+    </StrictMode>
   )
 })

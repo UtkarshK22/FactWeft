@@ -1,24 +1,22 @@
-import { useState } from "react"
 import { useAppStore } from "../store/useStore"
 import { useQuery } from "@tanstack/react-query"
-import { getHealth, getMe, setAgent, loadPanelState } from "../lib/api"
+import { getHealth } from "../lib/api"
 import { StatusBadge } from "./StatusBadge"
-import { ScopeChip } from "./ScopeChip"
-import { AuthorityMeter } from "./AuthorityMeter"
 import { AgentAvatar } from "./AgentAvatar"
-import { KeyboardShortcuts } from "./KeyboardShortcuts"
+import type { AgentInfo } from "../types/api"
 
 interface TopBarProps {
   llmMode: "fixture" | "live"
   setLlmMode: (mode: "fixture" | "live") => void
+  isHealthDown?: boolean
+  onAgentChange?: (agent: AgentInfo) => void
 }
 
-export function TopBar({ llmMode, setLlmMode }: TopBarProps) {
+export function TopBar({ llmMode, isHealthDown, onAgentChange }: TopBarProps) {
   const { agent, setAgent } = useAppStore()
-  const { data: health, isLoading } = useQuery({
+  const { data: health } = useQuery({
     queryKey: ["health"],
     queryFn: getHealth,
-    enabled: false,
   })
 
   // Agent switcher options
@@ -29,13 +27,22 @@ export function TopBar({ llmMode, setLlmMode }: TopBarProps) {
     { id: "agent_owner", role: "owner", token: "tok_atlas_owner_d4e5f3" },
   ]
 
-  const handleAgentSelect = (agentInfo: typeof agents[0]) => {
-    setAgent(agentInfo)
-    setAgent(agentInfo.token)
+  const handleAgentSelect = (agentOption: typeof agents[0]) => {
+    const info: AgentInfo = {
+      agent_id: agentOption.id,
+      role: agentOption.role,
+      token: agentOption.token,
+    }
+    setAgent(info)
+    onAgentChange?.(info)
   }
 
   // Health indicator
-  const healthStatus = health?.falkordb === "down" ? "down" : health?.falkordb === "ok" ? "ok" : "unknown"
+  const healthStatus = isHealthDown || health?.falkordb === "down"
+    ? "down"
+    : health?.falkordb === "ok"
+      ? "ok"
+      : "unknown"
 
   return (
     <header className="border-b border-border bg-bg/80 backdrop-blur-md sticky top-0 z-20 flex items-center justify-between px-6 py-3">
@@ -86,8 +93,8 @@ export function TopBar({ llmMode, setLlmMode }: TopBarProps) {
                       : "text-muted hover:text-accent hover:bg-bg transition-colors"}
                   `}
                 >
-                  <AgentAvatar agentId={a.agentId} role={a.role} size="sm" />
-                  {a.agent_id}
+                  <AgentAvatar agentId={a.id} role={a.role} size="sm" />
+                  {a.id}
                 </button>
               </li>
             ))}

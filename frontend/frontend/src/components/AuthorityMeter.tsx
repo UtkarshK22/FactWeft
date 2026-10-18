@@ -1,4 +1,4 @@
-import { ReactNode } from "react"
+
 
 interface AuthorityMeterProps {
   pips: number
@@ -6,9 +6,8 @@ interface AuthorityMeterProps {
   className?: string
 }
 
-export function AuthorityMeter({ pips, active, className }: AuthorityMeterProps) {
+export function AuthorityMeter({ pips, active }: AuthorityMeterProps) {
   const activePips = active || 0
-  const inactivePips = pips - activePips
 
   const pipClasses = (active: boolean) => `
     inline-flex items-center rounded-full w-3 h-3 ${active 

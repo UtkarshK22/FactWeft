@@ -6,14 +6,6 @@ import type {
   DemoRunResponse,
   AgentInfo,
   PanelState,
-  Toast,
-  LayoutView,
-  Citation,
-  Readiness,
-  Step,
-  WhatChanged,
-  Caveat,
-  Excluded,
 } from "../types/api"
 
 const BASE_URL = "/api"
@@ -116,10 +108,17 @@ export async function postDemoRun(
 }
 
 // Agent switcher - sets the bearer token
-export async function setAgent(token: string) {
-  setBearerToken(token)
-  if (typeof window !== "undefined") {
-    localStorage.setItem("factweft_token", token)
+export async function setAgent(agent: AgentInfo | string) {
+  if (typeof agent === "object") {
+    setBearerToken(agent.token)
+    if (typeof window !== "undefined") {
+      localStorage.setItem("factweft_token", agent.token)
+    }
+  } else {
+    setBearerToken(agent)
+    if (typeof window !== "undefined") {
+      localStorage.setItem("factweft_token", agent)
+    }
   }
 }
 
@@ -187,10 +186,10 @@ export function createToast(
         </svg>
       </div>
       <div class="flex-1 flex flex-col pt-1">
-        <p class="font-medium text-sm line-clamp-2">{title}</p>
-        <p class="text-xs text-slate-400 line-clamp-1">{description}</p>
+        <p class="font-medium text-sm line-clamp-2">${title}</p>
+        <p class="text-xs text-slate-400 line-clamp-1">${description}</p>
       </div>
-      {action && `\n        <button class="ml-2 text-xs font-semibold text-accent underline underline-offset-2 hover:opacity-90">\n          ${action}\n        </button>\n      `}
+      ${action ? `<button class="ml-2 text-xs font-semibold text-accent underline underline-offset-2 hover:opacity-90">${action}</button>` : ""}
     </div>
   `
   document.body.appendChild(toast)

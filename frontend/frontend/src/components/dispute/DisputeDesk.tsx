@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react"
 import { useAppStore } from "../../store/useStore"
-import { getBearerToken, postAsk, queryKeys } from "../../lib/api"
-import { createToast, clearToasts, removeToast } from "../../lib/api"
-import { MemoryDetail } from "../../types/api"
+import type { MemoryDetail } from "../../types/api"
 
 export interface DisputeCardProps {
   memoryId: string
@@ -32,40 +30,9 @@ export const DisputeCard: React.FC<DisputeCardProps> = ({
   proposingAgent,
   confidence,
   evidence,
-  onSelect,
   onReview,
 }) => {
-  const [reviewing, setReviewing] = useState(false)
-  const [reason, setReason] = useState<string>("")
-  const { agent } = useAppStore()
-
-  const handleSupersede = async () => {
-    if (!agent?.token) return
-    setReviewing(true)
-    try {
-      const res = await fetch(`/api/memories/${memoryId}/review`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${agent.token}`,
-        },
-        body: JSON.stringify({ reason_code: reason }),
-      })
-      if (res.status === 409) {
-        // reload and retry
-        window.location.reload()
-      } else if (!res.ok) {
-        const err = await res.json()
-        createToast("Review failed", err.detail || "Unknown error", "OK", 5000)
-      } else {
-        createToast("Decision recorded", "Resolution applied", "OK", 5000)
-      }
-    } catch (e) {
-      createToast("Review failed", "Network error", "OK", 5000)
-    } finally {
-      setReviewing(false)
-    }
-  }
+  const [reviewing] = useState(false)
 
   return (
     <div className="border-b border-slate-700 pb-6 last:border-0 last:pb-0">
@@ -149,11 +116,12 @@ export const DisputeCard: React.FC<DisputeCardProps> = ({
 export const DisputeDesk: React.FC = () => {
   const [memoryA, setMemoryA] = useState<MemoryDetail | null>(null)
   const [memoryB, setMemoryB] = useState<MemoryDetail | null>(null)
-  const [sharedPredicate, setSharedPredicate] = useState<string | null>(null)
-  const { agent, asOfMs, filters } = useAppStore()
+  const [, setSharedPredicate] = useState<string | null>(null)
+  const { agent } = useAppStore()
+  const { asOfMs, filters } = useAppStore((s) => s.panel)
   const [concept, setConcept] = useState<string | null>(null)
   const [comparing, setComparing] = useState(false)
-  const { createToast, clearToasts } = useAppStore()
+  const { addToast: createToast, clearToasts } = useAppStore()
 
   // Load memories based on concept filter
   useEffect(() => {
@@ -161,8 +129,9 @@ export const DisputeDesk: React.FC = () => {
     clearToasts()
   }, [agent, asOfMs, concept, filters])
 
-  const loadMemories = async (concept?: string) => {
+  const loadMemories = async (concept?: string | null) => {
     if (!agent?.token) return
+    setComparing(true)
     try {
       const res = await fetch(`${"/api/disputes"}?concept=${concept || ""}`, {
         headers: { Authorization: `Bearer ${agent.token}` },
@@ -179,6 +148,8 @@ export const DisputeDesk: React.FC = () => {
       setSharedPredicate(data.shared_task || concept || null)
     } catch (e) {
       createToast("Load disputes", "Network error", "OK", 5000)
+    } finally {
+      setComparing(false)
     }
   }
 
@@ -243,17 +214,11 @@ export const DisputeDesk: React.FC = () => {
             evidence={memoryA.evidence ?? []}
             onSelect={(id) => {
               // Update zustand selection
-              useAppStore.getState().setPanel((s: any) => ({
-                ...s,
-                panel: { ...s.panel, selectedMemoryId: id },
-              }))
+              useAppStore.getState().setPanel({ selectedMemoryId: id })
             }}
             onReview={(id, reasonCode) => {
               if (window.confirm(`Apply resolution: ${reasonCode}?`)) {
-                useAppStore.getState().setPanel((s: any) => ({
-                  ...s,
-                  panel: { ...s.panel, selectedMemoryId: id },
-                }))
+                useAppStore.getState().setPanel({ selectedMemoryId: id })
                 // Could also call review API
                 createToast("Resolution pending", `Resolution ${reasonCode} applied`, "OK", 3000)
               }
@@ -273,17 +238,11 @@ export const DisputeDesk: React.FC = () => {
             confidence={memoryB.confidence ?? null}
             evidence={memoryB.evidence ?? []}
             onSelect={(id) => {
-              useAppStore.getState().setPanel((s: any) => ({
-                ...s,
-                panel: { ...s.panel, selectedMemoryId: id },
-              }))
+              useAppStore.getState().setPanel({ selectedMemoryId: id })
             }}
             onReview={(id, reasonCode) => {
               if (window.confirm(`Apply resolution: ${reasonCode}?`)) {
-                useAppStore.getState().setPanel((s: any) => ({
-                  ...s,
-                  panel: { ...s.panel, selectedMemoryId: id },
-                }))
+                useAppStore.getState().setPanel({ selectedMemoryId: id })
                 createToast("Resolution pending", `Resolution ${reasonCode} applied`, "OK", 3000)
               }
             }}
@@ -324,10 +283,7 @@ export const DisputeDesk: React.FC = () => {
             <button
               onClick={() => {
                 if (window.confirm("Supersede with evidence?")) {
-                  useAppStore.getState().setPanel((s: any) => ({
-                    ...s,
-                    panel: { ...s.panel, selectedMemoryId: memoryA!.id },
-                  }))
+                  useAppStore.getState().setPanel({ selectedMemoryId: memoryA!.id })
                   createToast("Action", "Supersede selected", "OK", 3000)
                 }
               }}

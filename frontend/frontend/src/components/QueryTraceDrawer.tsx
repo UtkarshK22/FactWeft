@@ -1,17 +1,15 @@
-import { useAppStore } from "../store/useStore"
-import { StatusBadge } from "./StatusBadge"
-
 interface QueryTraceDrawerProps {
   panel: any
+  setPanel: any
   agent: any | null
 }
 
-export function QueryTraceDrawer({ panel, agent }: QueryTraceDrawerProps) {
+export function QueryTraceDrawer({ panel, setPanel }: QueryTraceDrawerProps) {
   const { asOfMs } = panel
 
   return (
     <div className={`fixed left-0 top-0 bottom-0 w-80 transform transition-transform duration-300 ease-in-out ${
-      panel.selectedHandoffId !== undefined ? "translate-x-0" : "translate-x-full"
+      panel.selectedHandoffId ? "translate-x-0" : "translate-x-full"
     } bg-bg border-r border-border z-40 overflow-y-auto`}>
       <button
         onClick={() => setPanel({ ...panel, selectedHandoffId: null })}

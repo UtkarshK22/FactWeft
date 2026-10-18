@@ -1,53 +1,55 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-/* Custom base styles */
-:root {
-  --background: 0 0% 5.98% /* #0B0F1A */;
-  --foreground: 0 0% 95.09% /* #E5E7EB */;
-  --card: 0 0% 10.98% /* #111827 at 70% with backdrop-blur */;
-  --card-foreground: 0 0% 95.09% /* #E5E7EB */;
-  --popover: 0 0% 10.98% /* #111827 */;
-  --popover-foreground: 0 0% 95.09% /* #E5E7EB */;
-  --primary: 160 60% 44.71% /* #2DD4BF teal */;
-  --primary-foreground: 0 0% 5.49% /* dark text */;
-  --secondary: 38 60% 46.08% /* #F59E0B amber */;
-  --secondary-foreground: 0 0% 5.49% /* dark text */;
-  --muted: 0 0% 56.47% /* #94A3B8 */;
-  --muted-foreground: 0 0% 56.47% /* #94A3B8 */;
-  --accent: 260 60% 44.71% /* #8B5CF6 violet */;
-  --accent-foreground: 0 0% 98.04% /* white */;
-  --error: 0 80% 55.29% /* #F43F5E rose */;
-  --error-foreground: 0 0% 98.04% /* white */;
-  --border: 0 0% 3.14% /* rgba(255,255,255,0.08) */;
-  --input: 0 0% 3.14% /* rgba(255,255,255,0.08) */;
-  --ring: 160 60% 44.71% /* #2DD4BF teal */;
+/* Custom theme colors used across the app (Tailwind v4 @theme) */
+@theme {
+  --color-bg: #0b0f1a;
+  --color-surface: #111827;
+  --color-card: #111827;
+  --color-text: #e5e7eb;
+  --color-muted: #94a3b8;
+  --color-caption: #94a3b8;
+  --color-muted-ops: #94a3b8;
+  --color-accent: #8b5cf6;
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-input: rgba(255, 255, 255, 0.08);
+  --color-ring: #2dd4bf;
+  --color-error: #f43f5e;
 }
 
-/* Dark mode for systems that support it */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: 0 0% 5.98% /* #0B0F1A */;
-    --foreground: 0 0% 95.09% /* #E5E7EB */;
-    --card: 0 0% 10.98% /* #111827 */;
-    --card-foreground: 0 0% 95.09% /* #E5E7EB */;
-    --popover: 0 0% 10.98% /* #111827 */;
-    --popover-foreground: 0 0% 95.09% /* #E5E7EB */;
-    --primary: 160 60% 44.71% /* #2DD4BF teal */;
-    --primary-foreground: 0 0% 5.49% /* dark text */;
-    --secondary: 38 60% 46.08% /* #F59E0B amber */;
-    --secondary-foreground: 0 0% 5.49% /* dark text */;
-    --muted: 0 0% 56.47% /* #94A3B8 */;
-    --muted-foreground: 0 0% 56.47% /* #94A3B8 */;
-    --accent: 260 60% 44.71% /* #8B5CF6 violet */;
-    --accent-foreground: 0 0% 98.04% /* white */;
-    --error: 0 80% 55.29% /* #F43F5E rose */;
-    --error-foreground: 0 0% 98.04% /* white */;
-    --border: 0 0% 3.14% /* rgba(255,255,255,0.08) */;
-    --input: 0 0% 3.14% /* rgba(255,255,255,0.08) */;
-    --ring: 160 60% 44.71% /* #2DD4BF teal */;
+/* Base styles */
+body {
+  background-color: #0b0f1a;
+  color: #e5e7eb;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Skeleton shimmer */
+@keyframes shimmer {
+  0%,
+  100% {
+    opacity: 1;
   }
+  50% {
+    opacity: 0.5;
+  }
+}
+.animate-shimmer {
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* Toast entry (fallback for tailwindcss-animate's animate-in) */
+@keyframes toast-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-in {
+  animation: toast-enter 0.15s ease-out both;
 }
 
 /* Reduce motion */

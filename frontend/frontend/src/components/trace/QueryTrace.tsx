@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react"
 import { useAppStore } from "../../store/useStore"
-import { getBearerToken } from "../../lib/api"
-import { TraceEntryResponse, TraceResponse } from "../../types/api"
+import type { TraceEntryResponse, TraceResponse } from "../../types/api"
 
 export const QueryTrace: React.FC = () => {
   const [trace, setTrace] = useState<TraceResponse | null>(null)
   const [filteredByRequestId, setFilteredByRequestId] = useState<string | null>(null)
-  const { agent, asOfMs } = useAppStore()
-  const { createToast, clearToasts } = useAppStore()
+  const { agent } = useAppStore()
+  const { asOfMs } = useAppStore((s) => s.panel)
+  const { addToast: createToast, clearToasts } = useAppStore()
 
   useEffect(() => {
     if (!agent?.token) return

@@ -7,8 +7,8 @@ interface ToastProps {
 }
 
 export function Toast({ message, type = "info", duration = 5000 }: ToastProps) {
-  const timeoutRef = useRef<number>()
-  const toastRef = useRef<HTMLDivElement>()
+  const timeoutRef = useRef<number | undefined>(undefined)
+  const toastRef = useRef<HTMLDivElement | undefined>(undefined)
 
   useEffect(() => {
     // Create toast element

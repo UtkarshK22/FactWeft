@@ -2,16 +2,13 @@ import { useState } from "react"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { useAppStore } from "../store/useStore"
 import { postAsk, postDemoRun } from "../lib/api"
-import { StatusBadge } from "../components/StatusBadge"
-import { CypherCodeBlock } from "../components/CypherCodeBlock"
-import { Toast } from "../components/Toast"
 
 interface AskViewProps {
   llmMode: "fixture" | "live"
 }
 
 export function AskView({ llmMode }: AskViewProps) {
-  const { selectedMemoryId, selectedHandoffId, asOfMs, filters, agent } = useAppStore()
+  const { selectedMemoryId, selectedHandoffId, asOfMs, filters } = useAppStore((s) => s.panel)
   const [question, setQuestion] = useState("")
   const [answer, setAnswer] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -24,16 +21,16 @@ export function AskView({ llmMode }: AskViewProps) {
     enabled: false,
   })
 
-  const { mutate: askMutation, isPending } = useMutation({
+  const { mutate: askMutation } = useMutation({
     mutationFn: async (q: string) => {
-      const body: any = { question: q }
+      const body: any = { question: q, llm_mode: llmMode }
       if (asOfMs) body.as_of_ms = asOfMs
       if (filters) body.filters = filters
       if (selectedMemoryId) body.selected_memory_id = selectedMemoryId
       if (selectedHandoffId) body.selected_handoff_id = selectedHandoffId
       
       const res = await postAsk(body)
-      return res.data
+      return res
     },
     onSuccess: (data) => {
       setAnswer(data.answer ?? null)
@@ -87,7 +84,7 @@ export function AskView({ llmMode }: AskViewProps) {
     setIsSubmitting(true)
     try {
       const res = await postDemoRun(stepKey)
-      setAnswer(`${step.label}: ${JSON.stringify(res.data?.report || res.data, null, 2)}`)
+      setAnswer(`${step.label}: ${JSON.stringify(res?.report || res, null, 2)}`)
       showToast(`${step.label} completed`, "success")
     } catch (err: any) {
       showToast(err.message || `${step.label} failed`, "error")
@@ -168,7 +165,7 @@ export function AskView({ llmMode }: AskViewProps) {
             <div className="mt-4 pt-4 border-t border-border">
               <h4 className="text-sm font-medium text-muted mb-2">Citations</h4>
               <ul className="space-y-1 text-sm text-muted">
-                {Array.isArray(answer) ? answer : [answer]}
+                {[answer]
                   .slice(0, 5)
                   .map((citation, i) => (
                     <li key={i} className="flex items-start">
@@ -179,9 +176,6 @@ export function AskView({ llmMode }: AskViewProps) {
                     </li>
                   ))}
               </ul>
-              {answer.length > 5 && (
-                <p className="text-xs text-muted mt-1">+ {answer.length - 5} more citations</p>
-              )}
             </div>
           )}
         </div>

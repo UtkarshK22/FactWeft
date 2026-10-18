@@ -1,9 +1,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { useAppStore } from "./store/useStore"
-import { useQuery } from "@tanstack/react-query"
-import { getHealth, getMe, setAgent } from "./lib/api"
-import { createToast, clearToasts, removeToast } from "./lib/api"
-import { useAppStore as useStore } from "./store/useStore"
+import { getHealth } from "./lib/api"
+import type { AgentInfo, LayoutView } from "./types/api"
 
 // Component imports (will create these next)
 import { LeftRail } from "./components/LeftRail"
@@ -14,16 +12,7 @@ import { QueryTraceDrawer } from "./components/QueryTraceDrawer"
 import { DisputeDesk } from "./components/dispute/DisputeDesk"
 import { HandoffCapsule } from "./components/handoff/HandoffCapsule"
 import { AskPanel } from "./components/ask/AskPanel"
-import { QueryTrace } from "./components/trace/QueryTrace"
-import { EmptyState } from "./components/EmptyState"
-import { ErrorState } from "./components/ErrorState"
-import { StatusBadge } from "./components/StatusBadge"
-import { ScopeChip } from "./components/ScopeChip"
-import { AuthorityMeter } from "./components/AuthorityMeter"
-import { AgentAvatar } from "./components/AgentAvatar"
-import { CypherCodeBlock } from "./components/CypherCodeBlock"
-import { SkeletonLoader } from "./components/SkeletonLoader"
-import { KeyboardShortcuts } from "./components/KeyboardShortcuts"
+
 
 export function App() {
   const {
@@ -35,17 +24,12 @@ export function App() {
     setLlmMode,
     agent,
     setAgent,
-    toasts,
     addToast,
-    removeToast,
     clearToasts,
-    queryClient,
-    setQueryClient,
   } = useAppStore()
 
   // Health check polling
   const [isHealthDown, setIsHealthDown] = useState(false)
-  const [healthCheckInterval, setHealthCheckInterval] = useState<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     // Initial health check
@@ -53,7 +37,6 @@ export function App() {
 
     // Set up interval for health polling (every 3 seconds)
     const interval = setInterval(checkHealth, 3000)
-    setHealthCheckInterval(interval)
 
     // Cleanup on unmount
     return () => {
@@ -73,7 +56,6 @@ export function App() {
   // Handle agent switcher change
   const handleAgentChange = async (agentInfo: AgentInfo) => {
     setAgent(agentInfo)
-    await setAgent(agentInfo.token)
     addToast(
       "Agent switched",
       `Acting as ${agentInfo.agent_id} (${agentInfo.role})`,
@@ -91,13 +73,13 @@ export function App() {
   useEffect(() => {
     const handleKeydown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        // Close drawers
-        removeToast()
+        // Close any open toasts
+        clearToasts()
       }
     }
     document.addEventListener("keydown", handleKeydown)
     return () => document.removeEventListener("keydown", handleKeydown)
-  }, [])
+  }, [clearToasts])
 
   // Toast removal on mount
   useEffect(() => {
@@ -105,7 +87,7 @@ export function App() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-bg text-text">
+    <div className="min-h-screen bg-bg text-text flex flex-col">
       {/* Top Bar */}
       <TopBar
         isHealthDown={isHealthDown}
@@ -114,20 +96,22 @@ export function App() {
         setLlmMode={setLlmMode}
       />
 
-      {/* Left Rail */}
-      <LeftRail
-        onTabClick={handleTabClick}
-        selectedView={view}
-        agent={agent}
-      />
+      <div className="flex flex-1 min-w-0">
+        {/* Left Rail */}
+        <LeftRail
+          onTabClick={handleTabClick}
+          selectedView={view}
+          agent={agent}
+        />
 
-      {/* Main Canvas - dynamic view rendering */}
-      <MainCanvas
-        view={view}
-        onTabClick={handleTabClick}
-        agent={agent}
-        llmMode={llmMode}
-      />
+        {/* Main Canvas - dynamic view rendering */}
+        <MainCanvas
+          view={view}
+          onTabClick={handleTabClick}
+          agent={agent}
+          llmMode={llmMode}
+        />
+      </div>
 
       {/* View-specific content overlay */}
       {view === "disputes" && (
@@ -157,6 +141,7 @@ export function App() {
       {/* Bottom Query Trace Drawer */}
       <QueryTraceDrawer
         panel={panel}
+        setPanel={setPanel}
         agent={agent}
       />
     </div>
