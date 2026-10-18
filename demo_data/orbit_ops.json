@@ -1,0 +1,213 @@
+{
+  "workspace": {
+    "id": "demo_orbit_ops",
+    "display_name": "Orbit Ops",
+    "created_at": 1791187200000
+  },
+  "agents": [
+    {
+      "id": "agent_scout",
+      "role": "scout",
+      "display_name": "Scout"
+    },
+    {
+      "id": "agent_verifier",
+      "role": "verifier",
+      "display_name": "Verifier"
+    },
+    {
+      "id": "agent_planner",
+      "role": "planner",
+      "display_name": "Planner"
+    },
+    {
+      "id": "agent_coordinator",
+      "role": "coordinator",
+      "display_name": "Coordinator"
+    },
+    {
+      "id": "human_owner",
+      "role": "owner",
+      "display_name": "Human Owner"
+    }
+  ],
+  "concepts": [
+    {
+      "id": "atlas_release",
+      "canonical_name": "Orbit release",
+      "concept_type": "release",
+      "aliases": [
+        "orbit",
+        "the orbit release"
+      ]
+    },
+    {
+      "id": "release_freeze",
+      "canonical_name": "Orbit release freeze",
+      "concept_type": "milestone",
+      "aliases": [
+        "freeze",
+        "code freeze"
+      ]
+    },
+    {
+      "id": "qa_signoff",
+      "canonical_name": "QA sign-off",
+      "concept_type": "gate",
+      "aliases": [
+        "qa",
+        "sign-off"
+      ]
+    },
+    {
+      "id": "migration_rehearsal",
+      "canonical_name": "Migration rehearsal",
+      "concept_type": "gate",
+      "aliases": [
+        "rehearsal",
+        "dry run"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "src_orbit_planning",
+      "title": "Orbit release planning note",
+      "source_type": "planning_doc",
+      "source_ref": "synthetic://orbit/planning-note-v3",
+      "published_at": 1791190800000,
+      "authority": 3,
+      "synthetic_flag": true,
+      "excerpt": "Synthetic Orbit planning note. Target freeze is 2026-11-02. QA sign-off pending, migration rehearsal pending.",
+      "content_hash": "sha256:023dc4c3c8df74239e795f785aa855ed0902181229299b1a616794f570cf5314"
+    },
+    {
+      "id": "src_orbit_bulletin",
+      "title": "Orbit bulletin 7",
+      "source_type": "official_bulletin",
+      "source_ref": "synthetic://orbit/bulletin-7",
+      "published_at": 1791277200000,
+      "authority": 4,
+      "synthetic_flag": true,
+      "excerpt": "Synthetic Orbit bulletin 7. Freeze confirmed for 2026-11-03; migration rehearsal passed; QA sign-off still pending.",
+      "content_hash": "sha256:82b32772bf307599603d829987a0be459888a3ee96d2974119f8495ba6e4849b"
+    }
+  ],
+  "sessions": [
+    {
+      "id": "session_orbit_s1",
+      "task_label": "Orbit readiness intake",
+      "started_at": 1791194400000,
+      "ended_at": 1791196200000
+    },
+    {
+      "id": "session_orbit_s2",
+      "task_label": "Orbit bulletin review",
+      "started_at": 1791280800000,
+      "ended_at": 1791282000000
+    }
+  ],
+  "episodes": [
+    {
+      "id": "ep_orbit_s1_planning",
+      "session_id": "session_orbit_s1",
+      "event_type": "source_ingested",
+      "occurred_at": 1791194700000,
+      "summary": "Orbit planning note ingested."
+    },
+    {
+      "id": "ep_orbit_s2_bulletin",
+      "session_id": "session_orbit_s2",
+      "event_type": "source_ingested",
+      "occurred_at": 1791281100000,
+      "summary": "Orbit bulletin 7 ingested."
+    }
+  ],
+  "procedures": [
+    {
+      "id": "mem_orbit_release_readiness",
+      "agent_id": "agent_verifier",
+      "subject_key": "atlas_release",
+      "predicate": "procedure",
+      "label": "release_readiness",
+      "summary": "Orbit release readiness: QA sign-off complete and migration rehearsal passed.",
+      "confidence": 1.0,
+      "created_at": 1791195000000,
+      "valid_from": 1791195000000,
+      "steps": [
+        {
+          "order": 1,
+          "label": "QA sign-off complete",
+          "check_predicate": "status",
+          "expected_value": "complete",
+          "concept_id": "qa_signoff"
+        },
+        {
+          "order": 2,
+          "label": "Migration rehearsal passed",
+          "check_predicate": "status",
+          "expected_value": "passed",
+          "concept_id": "migration_rehearsal"
+        }
+      ]
+    }
+  ],
+  "extractions": {
+    "src_orbit_planning": {
+      "claims": [
+        {
+          "subject_key": "release_freeze",
+          "predicate": "freeze_date",
+          "object_value": "2026-11-02",
+          "kind": "semantic",
+          "cardinality": "one",
+          "summary": "Orbit planning note targets the freeze for 2026-11-02.",
+          "scope": "workspace",
+          "confidence": 0.9,
+          "valid_from": 1791190800000,
+          "episode_id": "ep_orbit_s1_planning"
+        },
+        {
+          "subject_key": "qa_signoff",
+          "predicate": "status",
+          "object_value": "pending",
+          "kind": "semantic",
+          "cardinality": "one",
+          "summary": "Orbit QA sign-off is pending.",
+          "scope": "workspace",
+          "confidence": 0.9,
+          "valid_from": 1791190800000,
+          "episode_id": "ep_orbit_s1_planning"
+        }
+      ]
+    },
+    "src_orbit_bulletin": {
+      "claims": [
+        {
+          "subject_key": "release_freeze",
+          "predicate": "freeze_date",
+          "object_value": "2026-11-03",
+          "kind": "semantic",
+          "cardinality": "one",
+          "summary": "Orbit bulletin 7 moves the freeze to 2026-11-03.",
+          "scope": "workspace",
+          "confidence": 0.96,
+          "valid_from": 1791277200000,
+          "episode_id": "ep_orbit_s2_bulletin"
+        },
+        {
+          "subject_key": "migration_rehearsal",
+          "predicate": "status",
+          "object_value": "passed",
+          "kind": "semantic",
+          "cardinality": "one",
+          "summary": "Orbit migration rehearsal passed.",
+          "scope": "workspace",
+          "confidence": 0.95,
+          "valid_from": 1791277200000,
+          "episode_id": "ep_orbit_s2_bulletin"
+        }
+      ]
+    }
+  }
+}

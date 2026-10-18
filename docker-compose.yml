@@ -1,0 +1,65 @@
+name: factweft
+
+# FalkorDB is the only memory store. If it stops, graph routes return 503;
+# there is deliberately no local/in-memory fallback.
+services:
+  falkordb:
+    # Pinned stable tag (NOT latest). v4.22.1 is the current stable 4.x line that
+    # `:latest` still resolves to, and it ships the Browser + supports unique constraints.
+    image: falkordb/falkordb:v4.22.1
+    container_name: factweft-falkordb
+    restart: unless-stopped
+    ports:
+      - "6379:6379" # FalkorDB / RESP protocol
+      - "3000:3000" # FalkorDB Browser UI
+    environment:
+      # Durability: RDB snapshots + the named volume below make graphs survive
+      # restarts. AOF is intentionally OFF: on the pinned v4.22.1 image, replaying
+      # GRAPH.EFFECT entries from the AOF crashes the module during startup
+      # (GraphContext_GetSchemaByID). RDB snapshots load cleanly (verified).
+      REDIS_ARGS: "--requirepass ${FALKORDB_PASSWORD:-factweft_dev_pw} --appendonly no --save 5 1"
+      FALKORDB_ARGS: "THREAD_COUNT 4 TIMEOUT_MAX 30000"
+      FALKORDB_PASSWORD: ${FALKORDB_PASSWORD:-factweft_dev_pw}
+    volumes:
+      # Verified against the FalkorDB Docker docs: data lives in /var/lib/falkordb/data.
+      - falkordb_data:/var/lib/falkordb/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$${FALKORDB_PASSWORD}\" --no-auth-warning ping | grep -q PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 24
+      start_period: 10s
+
+  api:
+    build:
+      context: ./backend
+    image: factweft-api:latest
+    container_name: factweft-api
+    restart: unless-stopped
+    depends_on:
+      falkordb:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    environment:
+      FALKORDB_HOST: falkordb
+      FALKORDB_PORT: "6379"
+      FALKORDB_PASSWORD: ${FALKORDB_PASSWORD:-factweft_dev_pw}
+      LLM_MODE: ${LLM_MODE:-fixture}
+      LLM_MODEL: ${LLM_MODEL:-gpt-4o-mini}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      DEMO_MODE: ${DEMO_MODE:-true}
+      TOKENS_FILE: /app/demo_data/tokens.json
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
+      QUERY_TIMEOUT_MS: ${QUERY_TIMEOUT_MS:-5000}
+      MAX_GRAPH_NODES: ${MAX_GRAPH_NODES:-500}
+      TRACE_BUFFER_SIZE: ${TRACE_BUFFER_SIZE:-500}
+    volumes:
+      # Source-mounted for --reload development.
+      - ./backend:/app
+      - ./demo_data:/app/demo_data:ro
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+volumes:
+  falkordb_data:
+    driver: local
